@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import * as React from 'react';
-import { Card, InputAdornment, Paper, TextField } from '@mui/material';
+import { Badge, Card, InputAdornment, Paper, TextField } from '@mui/material';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import BottomNavigation from '@mui/material/BottomNavigation';
@@ -13,6 +13,7 @@ import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import { useNavigate } from 'react-router-dom';
 import { TiDocumentText } from "react-icons/ti";
 import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined';
+import HomeIcon from '@mui/icons-material/Home';
 import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
 import CssBaseline from '@mui/material/CssBaseline';
 import './css/Cart.css';
@@ -22,6 +23,7 @@ import { removeItem, selectCartItems, updateQuantity } from '../../app/features/
 function Cart() {
     const [activeTab, setActiveTab] = React.useState('Dine In');
     const [value, setValue] = React.useState('cart');
+    const [color, setColor] = React.useState(false)
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const cartItems = useSelector(selectCartItems);
@@ -30,25 +32,32 @@ function Cart() {
         setValue(newValue);
         if (newValue === 'cart') {
             navigate('/cart');
-        } else if (newValue === 'favorites') {
-            navigate('/favorites');
+            setColor(true)
+        } else if (newValue === 'home') {
+            navigate('/');
         } else if (newValue === 'archive') {
             navigate('/archive');
         }
     };
     const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
 
-    const totalPrice = cartItems.reduce((total, item) => total + (item.quantity * item.itemDetails.itemPrice), 0);
-    
+    const totalPrice = cartItems.reduce((total, item) => total + (item.quantity * item.variantDetails.price), 0);
+
     const handleIncrement = (item) => {
-        dispatch(updateQuantity({ itemIndex: item.itemIndex, quantity: item.quantity + 1 }));
+        if (item.quantity < 11) {
+            dispatch(updateQuantity({ itemName: item.itemName, quantity: item.quantity + 1, variantDetails: item.variantDetails }));
+        }
+        else {
+            alert('Max Limit Reached')
+        }
     };
 
     const handleDecrement = (item) => {
         if (item.quantity > 1) {
-            dispatch(updateQuantity({ itemIndex: item.itemIndex, quantity: item.quantity - 1 }));
+            console.log(item)
+            dispatch(updateQuantity({ itemName: item.itemName, quantity: item.quantity - 1, variantDetails: item.variantDetails }));
         } else {
-            dispatch(removeItem({ itemIndex: item.itemIndex }));
+            dispatch(removeItem({ itemName: item.itemName, variantDetails: item.variantDetails }));
         }
     };
 
@@ -76,23 +85,23 @@ function Cart() {
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }} className='bg-gray-200 w-full'>
             <CssBaseline />
             <AppBar component="nav" className='w-full'>
-                <div className="py-2 flex justify-around w-full bg-white text-black items-center">
+                <div className="py-2 flex  justify-around w-full bg-white text-black items-center">
                     <div className="flex w-full  items-center">
                         <div className="back_icon cursor-pointer"><ArrowBackOutlinedIcon onClick={() => { navigate(-1) }} /></div>
                         <div className="ml-2 text-lg font-medium">Cart</div>
                     </div>
-                    <div className=" w-full flex ml-2 items-center rounded-md">
+                    <div className=" w-full flex mr-2 items-center gap-1  bg-gray-200  rounded-md">
                         <div
                             onClick={() => setActiveTab('Dine In')}
                             className="cursor-pointer w-1/2 text-center">
-                            <p className={`w-full ${activeTab === 'Dine In' ? ' bg-red-700 text-white' : 'text-black bg-gray-100'} py-2 rounded-lg`}>
+                            <p className={`w-full ${activeTab === 'Dine In' ? ' bg-red-700 text-white' : 'text-black '} py-2 rounded-lg`}>
                                 Dine In
                             </p>
                         </div>
                         <div
                             onClick={() => setActiveTab('Pick Up')}
-                            className="cursor-pointer w-1/2 text-center">
-                            <p className={`w-full ${activeTab === 'Pick Up' ? ' bg-red-700 text-white' : 'text-black bg-gray-100'} py-2 rounded-lg`}>
+                            className="cursor-pointer w-1/2  text-center">
+                            <p className={`w-full ${activeTab === 'Pick Up' ? ' bg-red-700 text-white' : 'text-black '} py-2 rounded-lg`}>
                                 Pick Up
                             </p>
                         </div>
@@ -102,39 +111,45 @@ function Cart() {
             <div className="flex-grow my-4 w-full py-14 flex justify-around gap-4 flex-wrap overflow-auto">
                 <div className='w-full bg-white  text-center py-2 '>
                     {cartItems.map((item, index) => (
-                        <div key={index} className="flex  p-2 w-full justify-between">
-                            <div className="itemDetails text-start">
-                                <div className="itemName font-semibold text-base">{item.itemDetails.itemName}</div>
-                                <div className="preparation text-gray-700">Preparation: {item.itemDetails.itemDescription}</div>
+                        <div key={index} className="flex  p-2 w-full gap-14 justify-between">
+                            <div className="itemDetails text-start w-4/6">
+                                <div className="itemName font-semibold text-base font-sm">{item.itemDetails.itemName}</div>
+                                <div className="preparation text-gray-700">Preparation: {item.variantDetails.unit}</div>
                                 <div className="itemPrice flex items-center font-semibold text-lg">
                                     <div><CurrencyRupeeIcon className='rupeesIcon' /></div>
-                                    <p className='mt-1'>{item.itemDetails.itemPrice}</p>
+                                    <p className='mt-1'>{item?.variantDetails.price}</p>
                                 </div>
                                 <div className="text-gray-700 text-xs flex items-center">Customize <ArrowDropDownIcon /></div>
                             </div>
-                            <div className="itemQuantity">
-                                <div className="flex items-center border-red-800 border rounded-lg shadow-md">
-                                    <div className="minus w-full text-center text-md p-1 px-3" onClick={() => handleDecrement(item)}>
+                            <div className="itemQuantity w-1/3">
+                                <div className="flex w-15 items-center border-black border rounded-lg shadow-md">
+                                    <div
+                                        className="minus w-full text-center text-sm text-red-600 px-2 text-align-webkit"
+                                        onClick={() => handleDecrement(item)}
+                                    >
                                         <FaMinus />
                                     </div>
-                                    <div className="quantity w-full text-center text-white text-md p-1 bg-red-700 e-full px-3">
+                                    <div className="quantity w-full text-center text-black text-md p-1 bg-red-300 e-full px-2">
                                         {item.quantity}
                                     </div>
-                                    <div className="plus w-full text-center text-md p-1 px-3" onClick={() => handleIncrement(item)}>
+                                    <div
+                                        className="plus w-full  text-center text-sm px-2  text-red-600 text-align-webkit"
+                                        onClick={() => handleIncrement(item)}
+                                    >
                                         <FaPlus />
                                     </div>
                                 </div>
                                 <div className="itemQuantityWisePrice mt-2 flex justify-end items-center font-semibold text-lg">
                                     <div><CurrencyRupeeIcon className='rupeesIcon' /></div>
-                                    <p className='mt-1'>{item.itemDetails.itemPrice * item.quantity}</p>
+                                    <p className='mt-1'>{item?.variantDetails.price * item.quantity}</p>
                                 </div>
                             </div>
                         </div>
                     ))}
-                    <div className="border-t-2 bg-white w-full mt-2">
+                    <div className="border-t-2 bg-white w-full overflow-hidden  mt-2">
                         <TextField
                             id="standard-start-adornment"
-                            sx={{ m: 1, width: '25ch' }}
+                            sx={{ m: 1 }}
                             InputProps={{
                                 startAdornment: <InputAdornment position="start"><TiDocumentText /></InputAdornment>,
                             }}
@@ -143,7 +158,7 @@ function Cart() {
                             className='commentInput'
                         />
                     </div>
-                    <div className="bg-white p-3 my-4">
+                    <div className="bg-white border-t-2 w-full p-3 my-4">
                         <div className='text-start'><p>You Many also like to add:</p></div>
                         <div className="carousel my-2">
                             <div className="carousel-inner">
@@ -179,14 +194,21 @@ function Cart() {
                             </div>
                         </div>
                     </div>
-                    <div className="bg-white p-3 my-4">
-                        <div className="text-start font-bold">Bill Details:</div>
+                    <div className="bg-white w-full border-t-4 p-3 my-4">
+                        <div className="text-start font-bold tracking-wide">Bill Details:</div>
                         <div className="flex my-2 justify-between">
                             <div>Total Items</div>
+                            <div>{totalItems}</div>
+                        </div>
+                        <hr />
+                        <div className="flex my-2 justify-between">
+                            <div>Pay To</div>
                             <div>Rs. {totalPrice}</div>
                         </div>
-                        <div className="text-start font-bold">Cancellation Policy</div>
-                        <p className='text-start'>As a general rule Buyer shall not be entitled to cancel Order once placed. Buyer may choose to cancel Order only within one-minute of the Order being placed. However, subject to Buyer's previous cancellation history, Swiggy reserves the right to deny any refund to Buyer pursuant to a cancellation initiated by Buyer even if the same is within one-minute followed by suspension of account, as may be necessary in the sole discretion of Swiggy.</p>
+                    </div>
+                    <div className="bg-white w-full border-t-4 p-3 my-4">
+                        <div className="text-start font-bold mt-5">Cancellation Policy</div>
+                        <p className='text-start'>As a general rule Buyer shall not be entitled to cancel Order once placed.  Buyer may choose to cancel Order only within one-minute of the Order being placed. </p>
                     </div>
                 </div>
             </div>
@@ -196,9 +218,11 @@ function Cart() {
                     value={value}
                     onChange={handleChange}
                 >
-                    <BottomNavigationAction value="cart" label="Cart" icon={<ShoppingCartOutlinedIcon />} />
-                    <BottomNavigationAction value="favorites" label="Favorites" icon={<FavoriteIcon />} />
-                    <BottomNavigationAction value="archive" label="Archive" icon={<ArchiveIcon />} />
+                    <BottomNavigationAction value="home" icon={<HomeIcon />} />
+                    <BottomNavigationAction value="cart" icon={<Badge badgeContent={totalItems} color="error">
+                        <ShoppingCartOutlinedIcon className={`${color ? 'text-red-600' : ''}`} />
+                    </Badge>} />
+                    <BottomNavigationAction value="archive" icon={<ArchiveIcon />} />
                 </BottomNavigation>
             </Paper>
         </Box>

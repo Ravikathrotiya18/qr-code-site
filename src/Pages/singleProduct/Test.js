@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
-import { Box, Card, Modal } from "@mui/material";
+import { Card } from "@mui/material";
 import { FaMinus, FaPlus } from "react-icons/fa";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { addItem, updateQuantity } from "../../app/features/Cart/CartSlice";
 import sectionnameWiseData from "../Test";
 import "./singleProduct.css";
@@ -12,7 +12,6 @@ const SingleProduct = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { sectionName: selectedSectionName } = location.state;
-  const cartItems = useSelector((state) => state.cart.items);
 
   const [open, setOpen] = useState(false);
   const [dataFetched, setDataFetched] = useState(false);
@@ -20,7 +19,6 @@ const SingleProduct = () => {
   const [openCart, setOpenCart] = useState(false);
   const [itmsQuantity, setItmsQuantity] = useState(0);
   const [cartTotal, setCartTotal] = useState(0);
-  const [multipleItemsPopUp, setMultipleItemsPopUp] = useState(false)
   const [variantsListPopUp, setVariantsListPopUp] = useState(false);
   const [selectedVariants, setSelectedVariants] = useState([]);
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(null);
@@ -37,11 +35,10 @@ const SingleProduct = () => {
     if (item?.variantsList?.length === 1 && item.variantsList[0].unit === "regular") {
       setOpenCart(true);
       handleAddQuantities(item, itemIndex, item.variantsList[0]);
-      setSelectedItem(item)
     } else if (item?.variantsList?.length > 0) {
       setVariantsListPopUp(true);
       setSelectedVariants(item.variantsList);
-      setSelectedItem(item);
+      setSelectedItem({ item, itemIndex });
     } else {
       setOpenCart(true);
       handleAddQuantities(item, itemIndex);
@@ -68,16 +65,18 @@ const SingleProduct = () => {
       if (data) {
         const parsedData = JSON.parse(data);
         const updatedQuantities = {};
-
         let totalItems = 0;
         let totalPrice = 0;
 
-        parsedData.forEach(({ itemName, quantity, itemDetails, variantDetails }) => {
-          const { unit, price: variantPrice } = variantDetails || { unit: 'regular', price: itemDetails.itemPrice };
-          const key = `${itemName}-${unit}`;
-          updatedQuantities[key] = quantity;
+        parsedData.forEach(({ itemIndex, quantity, itemDetails, variantDetails }) => {
+          const price = variantDetails ? variantDetails.price : itemDetails.itemPrice;
+          if (updatedQuantities[itemIndex]) {
+            updatedQuantities[itemIndex] += quantity;
+          } else {
+            updatedQuantities[itemIndex] = quantity;
+          }
           totalItems += quantity;
-          totalPrice += quantity * parseInt(variantPrice, 10);
+          totalPrice += quantity * parseInt(price, 10);
         });
 
         setQuantities(updatedQuantities);
@@ -88,155 +87,92 @@ const SingleProduct = () => {
       setDataFetched(true);
     }
   }, [dataFetched]);
-  const handleVariantSelection = (index) => {
-    setSelectedVariantIndex(index);
-  };
-
   const handleOpen = () => setOpen(!open);
   const handleAddQuantities = (itemIndex, index, variantDetails = null) => {
     if (itemIndex?.variantsList.length > 0 && itemIndex?.variantsList[0].unit !== 'regular') {
       const storedItems = JSON.parse(localStorage.getItem('cartItems'));
+
       const lastAddedItemIndex = storedItems.findIndex(item =>
         JSON.stringify(item.itemDetails) === JSON.stringify(itemIndex)
       );
-      const variant = storedItems[lastAddedItemIndex]?.variantDetails;
-      const key = `${itemIndex?.itemName}-${variant?.unit}`;
-      const updatedQuantities = {
-        ...quantities,
-        [key]: (quantities[key] || 0) + 1,
-      };
-      setQuantities(updatedQuantities);
-      setSelectedItem(itemIndex)
-      setRepeatLast({ ...repeatLast, status: true, itemDetails: itemIndex, variantsList: variant });
-    } else if (itemIndex?.variantsList[0].unit === 'regular') {
+
+      const variantsList = storedItems[lastAddedItemIndex].variantDetails;
+
+      setRepeatLast({ ...repeatLast, status: true, itemDetails: itemIndex, variantsList: variantsList })
+      setOpenCart(false)
+    }
+    else {
       const itemName = itemIndex.itemName;
-      const variantUnit = itemIndex.variantsList[0].unit;
-      const key = `${itemName}-${variantUnit}`;
       const updatedQuantities = {
         ...quantities,
-        [key]: (quantities[key] || 0) + 1,
+        [itemName]: (quantities[itemName] || 0) + 1,
       };
+      const price = variantDetails ? variantDetails.price : sectionData.itemsData[index]?.itemPrice;
       setQuantities(updatedQuantities);
-      managedCart(itemName, updatedQuantities[key], itemIndex, itemIndex.variantsList[0]);
+      setItmsQuantity((prev) => prev + 1);
+      setCartTotal((prev) => prev + parseInt(price, 10));
+      managedCart(itemName, updatedQuantities[itemName], itemIndex, variantDetails);
     }
   };
-  const managedCart = (itemName, quantity, itemDetails, variantDetails = null) => {
+  const managedCart = (itemIndex, quantity, itemDetails, variantDetails = null) => {
     dispatch(
       addItem({
-        itemName,
+        itemIndex,
         quantity,
         itemDetails,
         variantDetails,
       })
     );
-
-    const data = localStorage.getItem("cartItems");
-    if (data) {
-      const parsedData = JSON.parse(data);
-      const updatedQuantities = {};
-      let totalItems = 0;
-      let totalPrice = 0;
-
-      parsedData.forEach(({ itemName, quantity, itemDetails, variantDetails }) => {
-        const price = variantDetails ? variantDetails.price : itemDetails.itemPrice;
-        const variantUnit = variantDetails ? variantDetails.unit : "regular";
-        const key = `${itemName}-${variantUnit}`;
-        updatedQuantities[key] = quantity;
-        totalItems += quantity;
-        totalPrice += quantity * parseInt(price, 10);
-      });
-      setQuantities(updatedQuantities);
-      setItmsQuantity(totalItems);
-      setCartTotal(totalPrice);
-      setOpenCart(totalItems > 0);
-    }
   };
-  const handleClose = () => {
-    setRepeatLast({ status: false });
-
-  }
-
   const handleSubtract = (item, index) => {
     const itemName = item.itemName;
     const updatedQuantities = { ...quantities };
-
-    if (item?.variantsList.length > 0 && item?.variantsList[0].unit !== 'regular') {
-      const storedItems = JSON.parse(localStorage.getItem('cartItems'));
-      const lastAddedItemIndex = storedItems.findIndex(cartItem =>
-        JSON.stringify(cartItem.itemDetails) === JSON.stringify(item)
-      );
-      const variant = storedItems[lastAddedItemIndex]?.variantDetails;
-      const key = `${item?.itemName}-${variant?.unit}`;
-      updatedQuantities[key] = (updatedQuantities[key] || 0) - 1;
-      setSelectedItem(item);
-      dispatch(updateQuantity({ itemName: item.itemName, quantity: updatedQuantities[key], variantDetails: variant }));
-    } else if (item?.variantsList[0].unit === 'regular') {
-      const variantUnit = item.variantsList[0].unit;
-      const key = `${itemName}-${variantUnit}`;
-      updatedQuantities[key] = (updatedQuantities[key] || 0) - 1;
-      dispatch(updateQuantity({ itemName, quantity: updatedQuantities[key], variantDetails: item?.variantsList[0] }));
-      updateCartAndLocalStorage(updatedQuantities);
+    if (updatedQuantities[itemName] > 0) {
+      updatedQuantities[itemName] -= 1;
+      dispatch(updateQuantity({ itemIndex: itemName, quantity: updatedQuantities[itemName] }));
+      const data = localStorage.getItem("cartItems");
+      if (data) {
+        const parsedData = JSON.parse(data);
+        const updatedQuantities = {};
+        let totalItems = 0;
+        let totalPrice = 0;
+        parsedData.forEach(({ itemIndex, quantity, itemDetails, variantDetails }) => {
+          const price = variantDetails ? variantDetails.price : itemDetails.itemPrice;
+          updatedQuantities[itemIndex] = quantity;
+          totalItems += quantity;
+          totalPrice += quantity * parseInt(price, 10);
+        });
+        setQuantities(updatedQuantities);
+        setItmsQuantity(totalItems);
+        setCartTotal(totalPrice);
+        setOpenCart(totalItems > 0);
+      }
     }
-
-    setQuantities(updatedQuantities);
-
     if (itmsQuantity === 0) {
-      setOpenCart(false);
-    }
-  };
-
-  const updateCartAndLocalStorage = (updatedQuantities) => {
-    const data = localStorage.getItem("cartItems");
-    if (data) {
-      const parsedData = JSON.parse(data);
-      let totalItems = 0;
-      let totalPrice = 0;
-
-      parsedData.forEach(({ itemName, quantity, itemDetails, variantDetails }) => {
-        const price = variantDetails ? variantDetails.price : itemDetails.itemPrice;
-        if (updatedQuantities[itemName]) {
-          updatedQuantities[itemName] += quantity;
-        } else {
-          updatedQuantities[itemName] = quantity;
-        }
-        totalItems += quantity;
-        totalPrice += quantity * parseInt(price, 10);
-      });
-
-      setQuantities(updatedQuantities);
-      setItmsQuantity(totalItems);
-      setCartTotal(totalPrice);
-      setOpenCart(totalItems > 0);
+      setOpenCart(false)
     }
   };
   const handleAddVariantToCart = () => {
     if (selectedVariantIndex !== null) {
       const selectedVariant = selectedVariants[selectedVariantIndex];
-      const itemName = selectedItem?.itemName;
-      if (itemName !== undefined) {
-        const key = `${itemName}-${selectedVariant?.unit}`;
-        const updatedQuantities = {
-          ...quantities,
-          [key]: (quantities[key] || 0) + 1,
-        };
-        setQuantities(updatedQuantities);
-        setItmsQuantity((prev) => prev + 1);
-        setCartTotal((prev) => prev + parseInt(selectedVariant.price, 10));
-        managedCart(itemName, updatedQuantities[key], selectedItem, selectedVariant);
-        setVariantsListPopUp(false);
-        setOpenCart(true);
-      }
+      const itemName = selectedItem?.item?.itemName;
+      const updatedQuantities = {
+        ...quantities,
+        [itemName]: 1,
+      };
+      setQuantities(updatedQuantities);
+      setItmsQuantity((prev) => prev + 1);
+      setCartTotal((prev) => prev + parseInt(selectedVariant.price, 10));
+      managedCart(itemName, updatedQuantities[itemName], selectedItem?.item, selectedVariant);
+      setVariantsListPopUp(false);
+      setOpenCart(true)
     }
   };
   const handleRepeatLast = () => {
-    const { itemDetails, variantsList } = repeatLast;
-    const itemName = itemDetails?.itemName;
-    if (!itemName) {
-      console.log("Item name is undefined.");
-      return;
-    }
-
+    const { itemDetails } = repeatLast;
+    const itemName = itemDetails.itemName;
     const storedItems = JSON.parse(localStorage.getItem('cartItems'));
+
     const lastAddedItemIndex = storedItems.findIndex(item =>
       JSON.stringify(item.itemDetails) === JSON.stringify(itemDetails)
     );
@@ -244,28 +180,24 @@ const SingleProduct = () => {
     if (lastAddedItemIndex !== -1) {
       const updatedItems = [...storedItems];
       updatedItems[lastAddedItemIndex].quantity += 1;
-      const variantDetails = storedItems[lastAddedItemIndex].variantDetails;
-      const variantUnit = variantDetails ? variantDetails.unit : 'regular';
-      const key = `${itemName}-${variantUnit}`;
       const updatedQuantities = {
         ...quantities,
-        [key]: (quantities[key] || 0) + 1,
+        [itemName]: (quantities[itemName] || 0) + 1,
       };
+      const variantDetails = storedItems[lastAddedItemIndex].variantDetails;
       setQuantities(updatedQuantities);
       setCartTotal(prev => prev + parseInt(variantDetails.price, 10));
       setItmsQuantity(prev => prev + 1);
       dispatch(updateQuantity({
-        itemName,
-        quantity: updatedItems[lastAddedItemIndex].quantity,
-        variantDetails: variantDetails,
+        itemIndex: itemName,
+        quantity: updatedItems[lastAddedItemIndex].quantity
       }));
       setRepeatLast(false);
-      setOpenCart(true);
+      setOpenCart(true)
     } else {
       console.log("No matching item found in the cart.");
     }
   };
-
   return (
     <div>
       <div className="back_icon cursor-pointer p-2">
@@ -278,14 +210,7 @@ const SingleProduct = () => {
       {sectionData &&
         sectionData.itemsData.map((item, itemIndex) => {
           const itemName = item.itemName;
-          const quantityInCart = item.variantsList.reduce((acc, variant) => {
-            const itemInCart = cartItems.find(
-              (cartItem) =>
-                cartItem.itemName === itemName &&
-                cartItem.variantDetails.unit === variant.unit
-            );
-            return acc + (itemInCart ? itemInCart.quantity : 0);
-          }, 0);
+          const quantityInCart = quantities[itemName] || 0;
           return (
             <div key={itemIndex}>
               <div className="grid grid-cols-12 items-center">
@@ -304,16 +229,16 @@ const SingleProduct = () => {
                     {quantityInCart > 0 ? (
                       <div className="flex items-center border overflow-hidden rounded-lg shadow-md">
                         <p
-                          className="minus w-full text-center text-sm text-red-600 px-2 text-align-webkit"
+                          className="minus w-full text-center text-sm text-red-600 px-3"
                           onClick={() => handleSubtract(item, itemIndex)}
                         >
                           <FaMinus />
                         </p>
-                        <div className="quantity w-full text-center h-8 text-black font-bold text-md bg-red-300 px-2">
+                        <div className="quantity w-full text-center h-8 text-black font-bold text-md bg-red-300 px-3">
                           <p className="mt-1">{quantityInCart}</p>
                         </div>
                         <p
-                          className="plus w-full  text-center text-sm px-2  text-red-600 text-align-webkit"
+                          className="plus w-full text-center text-sm px-3 text-red-600"
                           onClick={() => handleAddQuantities(item, itemIndex)}
                         >
                           <FaPlus />
@@ -414,14 +339,7 @@ const SingleProduct = () => {
         </div>
       )}
       {variantsListPopUp && (
-        <Modal
-        open={variantsListPopUp}
-        onClose={() => setVariantsListPopUp(!variantsListPopUp)}
-        aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description"
-        className='border-none'
-      >
-        <Box className="fixed bottom-0 py-3 bg-white shadow-lg rounded-t-lg h-fit border left-1/2 transform -translate-x-1/2 w-full">
+        <div className="fixed bottom-0 py-3 bg-white shadow-lg rounded-t-lg h-fit border left-1/2 transform -translate-x-1/2 w-full">
           <div className="p-4">
             {selectedVariants.map((variant, index) => (
               <div key={index} className="flex justify-between p-2 border-b">
@@ -430,7 +348,7 @@ const SingleProduct = () => {
                     type="radio"
                     name="variant"
                     checked={selectedVariantIndex === index}
-                    onChange={() => handleVariantSelection(index)}
+                    onChange={() => setSelectedVariantIndex(index)}
                   />
                   <span className="ml-2">{variant.unit}</span>
                 </div>
@@ -452,70 +370,45 @@ const SingleProduct = () => {
               Cancel
             </button>
           </div>
-        </Box>
-        </Modal>
+        </div>
       )}
       {repeatLast.status && (
-        <Modal
-          open={repeatLast.status}
-          onClose={handleClose}
-          aria-labelledby="modal-modal-title"
-          aria-describedby="modal-modal-description"
-          className='border-none'
-        >
-          <Box onClose={handleClose} className="fixed bottom-0 h-fit py-3 bg-white shadow-lg rounded-t-lg  border left-1/2 transform -translate-x-1/2 w-full">
-            <div className="p-4">
-              <div className="text-red-600 my-1">Repeat Last used Customization</div>
-              <hr className="my-1 border-black"></hr>
-              <div className="flex justify-between items-center p-2 border-b">
-                <div className="text-start">
-                  <span className="ml-2">{repeatLast?.itemDetails?.itemName} </span> <br />
-                  <span className="ml-2 text-md text-gray-400">Preperation :- {repeatLast?.variantsList?.unit} </span> <br />
-                  <span className="ml-2">&#x20B9;{repeatLast?.variantsList?.price}</span>
-                </div>
-                <div className="flex items-center h-fit border overflow-hidden rounded-lg shadow-md">
-                  <p
-                    className="minus w-full text-center  text-sm text-red-600 px-3"
-                  // onClick={() => handleSubtract(item, itemIndex)}
-                  >
-                    <FaMinus />
-                  </p>
-                  <div className="quantity w-full text-center h-8 text-black font-bold text-md bg-red-300 px-3">
-                    {/* <p className="mt-1">{quantityInCart}</p> */}
-                  </div>
-                  <p
-                    className="plus w-full text-center text-sm px-3 text-red-600"
-                  // onClick={() => handleAddQuantities(item, itemIndex)}
-                  >
-                    <FaPlus />
-                  </p>
-                </div>
+        <div className="fixed bottom-0 h-fit py-3 bg-white shadow-lg rounded-t-lg  border left-1/2 transform -translate-x-1/2 w-full">
+          <div className="p-4">
+            {console.log(repeatLast)}
+            <div className="text-red-600 my-1">Repeat Last used Customization</div>
+            <hr className="my-1 border-black"></hr>
+            <div className="flex justify-between p-2 border-b">
+              <div>
+                <span className="ml-2">{repeatLast?.itemDetails?.itemName} </span> <br />
+                <span className="ml-2 text-md text-gray-400">Preperation :- {repeatLast?.variantsList?.unit} </span>
               </div>
+              <span>&#x20B9;{repeatLast?.variantsList?.price}</span>
             </div>
-            <div className="flex gap-4 justify-center p-2 text-center">
-              <button
-                className="bg-red-600 w-1/2 text-white py-2 px-4 rounded mr-2"
-                onClick={() => {
-                  handleAddQuantities(repeatLast.itemDetails, repeatLast.itemDetails.itemIndex, repeatLast.itemDetails.variantsList[selectedVariantIndex]);
-                  setRepeatLast({ ...repeatLast, status: false });
-                  setSelectedVariants(repeatLast.itemDetails.variantsList);
-                  setSelectedVariantIndex(0);
-                  setVariantsListPopUp(true);
-                  setRepeatLast({ ...repeatLast, status: false });
-                }}
-              >
-                Add Other
-              </button>
-              <button
-                className="bg-gray-600 w-1/2 text-white py-2 px-4 rounded"
-                onClick={handleRepeatLast}
-              >
-                Repeat Last
-              </button>
+          </div>
+          <div className="flex gap-4 justify-center p-2 text-center">
+            <button
+              className="bg-red-600 w-1/2 text-white py-2 px-4 rounded mr-2"
+              onClick={() => {
+                handleAddQuantities(repeatLast.itemDetails, repeatLast.itemDetails.itemIndex, repeatLast.itemDetails.variantsList[selectedVariantIndex]);
+                setRepeatLast({ ...repeatLast, status: false });
+                setSelectedVariants(repeatLast.itemDetails.variantsList);
+                setSelectedVariantIndex(0);
+                setVariantsListPopUp(true);
+                setRepeatLast({ ...repeatLast, status: false });
+              }}
+            >
+              Add Other
+            </button>
+            <button
+              className="bg-gray-600 w-1/2 text-white py-2 px-4 rounded"
+              onClick={handleRepeatLast}
+            >
+              Repeat Last
+            </button>
 
-            </div>
-          </Box>
-        </Modal>
+          </div>
+        </div>
       )}
     </div>
   );

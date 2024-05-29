@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import * as React from 'react';
-import { Card, Paper } from '@mui/material'
+import { Badge, Card, Paper } from '@mui/material'
 import PropTypes from 'prop-types';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -11,13 +11,32 @@ import ArchiveIcon from '@mui/icons-material/Archive';
 import ShoppingCartOutlinedIcon from '@mui/icons-material/ShoppingCartOutlined';
 import './css/Cart.css'
 import { useNavigate } from 'react-router-dom';
+import HomeIcon from '@mui/icons-material/Home';
 import CssBaseline from '@mui/material/CssBaseline';
+import { useSelector } from 'react-redux';
+import { selectCartItems } from '../../app/features/Cart/CartSlice';
 
 function Home() {
 
     const [activeTab, setActiveTab] = React.useState('Dine In');
-    const [value, setValue] = React.useState('recents');
+    const [value, setValue] = React.useState('home');
+    const [color, setColor] = React.useState(false)
     const navigate = useNavigate();
+    const cartItems = useSelector(selectCartItems);
+
+    const handleChange = (event, newValue) => {
+        setValue(newValue);
+        if (newValue === 'cart') {
+            navigate('/cart');
+            setColor(true)
+        } else if (newValue === 'home') {
+            navigate('/');
+        } else if (newValue === 'archive') {
+            navigate('/archive');
+        }
+    };
+    const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+
 
     const sectionName = [
         'Hotdog',
@@ -52,9 +71,9 @@ function Home() {
             <div className="m-4 py-14 flex justify-around gap-4 flex-wrap">
                 {sectionName.map((section, index) => (
                     <div key={index}>
-                        <Card 
-                            variant="outlined" 
-                            className='w-36 p-2 h-36 text-center hover:cursor-pointer' 
+                        <Card
+                            variant="outlined"
+                            className='w-36 p-2 h-36 text-center hover:cursor-pointer'
                             onClick={() => navigate('/singleProduct', { state: { sectionName: section } })}
                         >
                             <p className='mt-14'>{section}</p>
@@ -66,13 +85,13 @@ function Home() {
                 <BottomNavigation
                     showLabels
                     value={value}
-                    onChange={(event, newValue) => {
-                        setValue(newValue);
-                    }}
+                    onChange={handleChange}
                 >
-                    <BottomNavigationAction onClick={() => { navigate('/cart') }} label="Cart" icon={<ShoppingCartOutlinedIcon />} />
-                    <BottomNavigationAction label="Favorites" icon={<FavoriteIcon />} />
-                    <BottomNavigationAction label="Archive" icon={<ArchiveIcon />} />
+                    <BottomNavigationAction value="home"  icon={<HomeIcon />} />
+                    <BottomNavigationAction value="cart" icon={<Badge badgeContent={totalItems} color="error">
+                        <ShoppingCartOutlinedIcon className={`${color ? 'text-red-600' : ''}`} />
+                    </Badge>} />
+                    <BottomNavigationAction value="archive"  icon={<ArchiveIcon />} />
                 </BottomNavigation>
             </Paper>
         </Box>

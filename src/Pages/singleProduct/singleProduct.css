@@ -2,6 +2,9 @@
     width: 9rem !important;
 }
 .marginLeft{
-    margin-left: 33%;
+    margin-left: 55%;
     margin-top: 5px;
+}
+.text-align-webkit{
+    text-align: -webkit-center;
 }

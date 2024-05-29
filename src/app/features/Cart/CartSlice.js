@@ -9,33 +9,37 @@ const cartSlice = createSlice({
   initialState,
   reducers: {
     addItem(state, action) {
-      const { itemIndex, quantity, itemDetails } = action.payload;
-      const existingItemIndex = state.items.findIndex(item => item.itemIndex === itemIndex);
-
+      const { itemName, quantity, itemDetails, variantDetails } = action.payload;
+      const existingItemIndex = state.items.findIndex(item => 
+        item.itemName === itemName &&
+        JSON.stringify(item.variantDetails) === JSON.stringify(variantDetails)
+      );
+    
       if (existingItemIndex !== -1) {
-        if (quantity === 0) {
-          // If quantity is 0, remove the item from state
-          state.items.splice(existingItemIndex, 1);
-        } else {
-          // Update the quantity of the existing item
-          state.items[existingItemIndex].quantity = quantity;
-        }
+        state.items[existingItemIndex].quantity += 1;
       } else if (quantity > 0) {
-        // Add new item only if quantity is greater than 0
-        state.items.push({ itemIndex, quantity, itemDetails });
+        state.items.push({ itemName, quantity, itemDetails, variantDetails });
       }
-
+    
+      state.items = state.items.filter(item => item.quantity > 0);
+    
       localStorage.setItem('cartItems', JSON.stringify(state.items));
     },
+    
     removeItem(state, action) {
-      const { itemIndex } = action.payload;
-      state.items = state.items.filter(item => item.itemIndex !== itemIndex);
+      const { itemName, variantDetails } = action.payload;
+      state.items = state.items.filter(item => 
+        !(item.itemName === itemName && JSON.stringify(item.variantDetails) === JSON.stringify(variantDetails))
+      );
       localStorage.setItem('cartItems', JSON.stringify(state.items));
     },
+
     updateQuantity(state, action) {
-      const { itemIndex, quantity } = action.payload;
-      const existingItemIndex = state.items.findIndex(item => item.itemIndex === itemIndex);
-      
+      const { itemName, quantity, variantDetails } = action.payload;
+      const existingItemIndex = state.items.findIndex(item => 
+        item.itemName === itemName && JSON.stringify(item.variantDetails) === JSON.stringify(variantDetails)
+      );
+
       if (existingItemIndex !== -1) {
         if (quantity === 0) {
           state.items.splice(existingItemIndex, 1);
@@ -51,7 +55,6 @@ const cartSlice = createSlice({
 
 export const { addItem, updateQuantity, removeItem } = cartSlice.actions;
 
-// Load cart items from local storage on app load
 const storedItems = localStorage.getItem('cartItems');
 if (storedItems) {
   initialState.items = JSON.parse(storedItems);

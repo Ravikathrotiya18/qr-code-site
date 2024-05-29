@@ -1,5 +1,6 @@
 body {
-    overflow-x: hidden;
+    width: 100%;
+    overflow-x: hidden !important;
 }
 
 .rupeesIcon {
@@ -7,7 +8,7 @@ body {
 }
 
 .commentInput {
-    width: 100% !important;
+    width: 96% !important;
 }
 
 .suggestionCard {
