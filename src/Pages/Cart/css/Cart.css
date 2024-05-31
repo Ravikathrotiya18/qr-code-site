@@ -10,6 +10,9 @@ body {
 .commentInput {
     width: 96% !important;
 }
+.textSize{
+    font-size: 150px !important;
+}
 
 .suggestionCard {
     width: 734px !important;

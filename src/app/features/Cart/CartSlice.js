@@ -36,6 +36,7 @@ const cartSlice = createSlice({
 
     updateQuantity(state, action) {
       const { itemName, quantity, variantDetails } = action.payload;
+      // console.log('itemName',itemName,'quantity',quantity,'variantDatails',variantDetails)
       const existingItemIndex = state.items.findIndex(item => 
         item.itemName === itemName && JSON.stringify(item.variantDetails) === JSON.stringify(variantDetails)
       );

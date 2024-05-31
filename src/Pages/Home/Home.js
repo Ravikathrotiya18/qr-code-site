@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import * as React from 'react';
-import { Badge, Card, Paper } from '@mui/material'
+import { Badge, Card, CircularProgress, Paper } from '@mui/material'
 import PropTypes from 'prop-types';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
@@ -15,6 +15,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useSelector } from 'react-redux';
 import { selectCartItems } from '../../app/features/Cart/CartSlice';
+import './css/Home.scss'
 
 function Home() {
 
@@ -47,24 +48,29 @@ function Home() {
         'French Fries'
     ];
 
+    const handleTabClick = (tab) => {
+        setActiveTab(tab);
+    };
+
     return (
         <Box sx={{ display: 'flex' }}>
             <CssBaseline />
             <AppBar component="nav">
-                <div className="w-full  flex bg-gray-100 p-2">
-                    <div
-                        onClick={() => setActiveTab('Dine In')}
-                        className="cursor-pointer w-1/2 text-center">
-                        <p className={`w-full  ${activeTab === 'Dine In' ? ' bg-red-700 text-white' : 'text-black'} py-2 rounded-lg`}>
-                            Dine In
-                        </p>
-                    </div>
-                    <div
-                        onClick={() => setActiveTab('Pick Up')}
-                        className="cursor-pointer w-1/2 text-center">
-                        <p className={`w-full  ${activeTab === 'Pick Up' ? ' bg-red-700 text-white' : 'text-black'} py-2 rounded-lg`}>
-                            Pick Up
-                        </p>
+                <div className="p-2 bg-white">
+                    <div className="tab-container">
+                        <div
+                            className={`tab ${activeTab === 'Dine In' ? 'active' : ''} text-black font-medium `}
+                            onClick={() => handleTabClick('Dine In')}
+                        >
+                            DINE IN
+                        </div>
+                        <div
+                            className={`tab ${activeTab === 'Pick Up' ? 'active' : ''} text-black font-medium`}
+                            onClick={() => handleTabClick('Pick Up')}
+                        >
+                            PICK UP
+                        </div>
+                        <div className="indicator" style={{ transform: activeTab === 'Dine In' ? 'translateX(0)' : 'translateX(100%)' }}></div>
                     </div>
                 </div>
             </AppBar>
@@ -81,17 +87,18 @@ function Home() {
                     </div>
                 ))}
             </div>
+            {/* <CircularProgress color="error" /> */}
             <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
                 <BottomNavigation
                     showLabels
                     value={value}
                     onChange={handleChange}
                 >
-                    <BottomNavigationAction value="home"  icon={<HomeIcon />} />
+                    <BottomNavigationAction value="home" icon={<HomeIcon />} />
                     <BottomNavigationAction value="cart" icon={<Badge badgeContent={totalItems} color="error">
                         <ShoppingCartOutlinedIcon className={`${color ? 'text-red-600' : ''}`} />
                     </Badge>} />
-                    <BottomNavigationAction value="archive"  icon={<ArchiveIcon />} />
+                    <BottomNavigationAction value="archive" icon={<ArchiveIcon />} />
                 </BottomNavigation>
             </Paper>
         </Box>
