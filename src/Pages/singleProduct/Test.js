@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+/* eslint-disable jsx-a11y/anchor-is-valid */
+import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import { Box, Card, Modal } from "@mui/material";
@@ -11,7 +12,7 @@ import "./singleProduct.css";
 const SingleProduct = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { sectionName: selectedSectionName } = location.state;
+  const { sectionName: selectedSectionName } = location.state ?? {};
   const cartItems = useSelector((state) => state.cart.items);
 
   const [open, setOpen] = useState(false);
@@ -20,16 +21,21 @@ const SingleProduct = () => {
   const [openCart, setOpenCart] = useState(false);
   const [itmsQuantity, setItmsQuantity] = useState(0);
   const [cartTotal, setCartTotal] = useState(0);
-  const [multipleItemsPopUp, setMultipleItemsPopUp] = useState(false)
   const [variantsListPopUp, setVariantsListPopUp] = useState(false);
   const [selectedVariants, setSelectedVariants] = useState([]);
+  const [meaalType, setMealType] = useState(null)
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedSectionsName, setSelectedSectionsName] = useState(selectedSectionName)
   const [repeatLast, setRepeatLast] = useState({
     status: false,
     itemDetails: '',
     variantsList: []
   })
+  const [selectedSection, setSelectedSection] = useState(selectedSectionName);
+
+  // Refs for each section element
+  const sectionRefs = useRef({});
 
   const dispatch = useDispatch();
 
@@ -38,6 +44,9 @@ const SingleProduct = () => {
       setOpenCart(true);
       handleAddQuantities(item, itemIndex, item.variantsList[0]);
       setSelectedItem(item)
+      setSelectedVariants(null)
+      setSelectedVariantIndex(null)
+      setVariantsListPopUp(true);
     } else if (item?.variantsList?.length > 0) {
       setVariantsListPopUp(true);
       setSelectedVariants(item.variantsList);
@@ -92,16 +101,8 @@ const SingleProduct = () => {
       const storedItems = JSON.parse(localStorage.getItem('cartItems') || '[]');
       const lastAddedItemIndex = storedItems.findIndex(item =>
         JSON.stringify(item.itemDetails) === JSON.stringify(itemIndex)
-      );
-
+      ); 
       const variant = storedItems[lastAddedItemIndex]?.variantDetails;
-      const key = `${itemIndex?.itemName}-${variant?.unit}`;
-
-      const updatedQuantities = {
-        ...quantities,
-        [key]: (quantities[key] || 0) + 1,
-      };
-      setQuantities(updatedQuantities);
       const filteredItems = storedItems.filter(val => val.itemName === itemIndex.itemName);
       setSelectedItem(itemIndex);
       setRepeatLast({
@@ -109,33 +110,20 @@ const SingleProduct = () => {
         status: true,
         itemDetails: itemIndex,
         variantsList: variant,
-        quantity: updatedQuantities[key],
         allData: filteredItems,
         subtract: false
       });
-
-    } else if (itemIndex?.variantsList[0].unit === 'regular') {
-      const itemName = itemIndex.itemName;
-      const variantUnit = itemIndex.variantsList[0].unit;
-      const key = `${itemName}-${variantUnit}`;
-
-      const updatedQuantities = {
-        ...quantities,
-        [key]: (quantities[key] || 0) + 1,
-      };
-
-      setQuantities(updatedQuantities);
-      managedCart(itemName, updatedQuantities[key], itemIndex, itemIndex.variantsList[0]);
     }
   };
 
-  const managedCart = (itemName, quantity, itemDetails, variantDetails = null) => {
+  const managedCart = (itemName, quantity, itemDetails, variantDetails = null,mealPreparation) => {
     dispatch(
       addItem({
         itemName,
         quantity,
         itemDetails,
         variantDetails,
+        mealType:mealPreparation
       })
     );
 
@@ -174,8 +162,6 @@ const SingleProduct = () => {
         JSON.stringify(cartItem.itemDetails) === JSON.stringify(item)
       );
       const variant = storedItems[lastAddedItemIndex]?.variantDetails;
-      const key = `${item?.itemName}-${variant?.unit}`;
-      updatedQuantities[key] = (updatedQuantities[key] || 0) - 1;
       setSelectedItem(item);
       updateCartAndLocalStorage(updatedQuantities)
       const filteredItems = storedItems.filter(val => val.itemName === item.itemName);
@@ -185,7 +171,6 @@ const SingleProduct = () => {
         status: true,
         itemDetails: item,
         variantsList: variant,
-        quantity: updatedQuantities[key],
         allData: filteredItems,
         subtract: true
       });
@@ -203,6 +188,14 @@ const SingleProduct = () => {
       setOpenCart(false);
     }
   };
+  useEffect(() => {
+    if (selectedSection) {
+      sectionRefs.current[selectedSection]?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }
+  }, [selectedSection]);
 
   const updateCartAndLocalStorage = (updatedQuantities) => {
     const data = localStorage.getItem("cartItems");
@@ -241,7 +234,7 @@ const SingleProduct = () => {
         setQuantities(updatedQuantities);
         setItmsQuantity((prev) => prev + 1);
         setCartTotal((prev) => prev + parseInt(selectedVariant.price, 10));
-        managedCart(itemName, updatedQuantities[key], selectedItem, selectedVariant);
+        managedCart(itemName, updatedQuantities[key], selectedItem, selectedVariant,meaalType);
         setVariantsListPopUp(false);
         setOpenCart(true);
         updateCartAndLocalStorage(updatedQuantities)
@@ -255,6 +248,18 @@ const SingleProduct = () => {
           subtract: false
         });
       }
+    } else {
+      const itemName = selectedItem?.itemName;
+      const variantUnit = selectedItem?.variantDetails?.unit
+      const key = `${itemName}-${variantUnit}`;
+      const updatedQuantities = {
+        ...quantities,
+        [key]: (quantities[key] || 0) + 1,
+      };
+
+      setQuantities(updatedQuantities);
+      managedCart(itemName, updatedQuantities[key], selectedItem, selectedItem.variantsList[0],meaalType);
+      setVariantsListPopUp(false)
     }
   };
 
@@ -296,39 +301,48 @@ const SingleProduct = () => {
     }
   };
   const handleSingleVariantAddPrice = (item) => {
-    const updatedQuantity = item.quantity + 1;
-    dispatch(updateQuantity({ itemName: item.itemName, quantity: updatedQuantity, variantDetails: item.variantDetails }));
-    setRepeatLast((prevState) => {
-      const updatedItems = prevState.allData.map((dataItem) =>
-        dataItem.itemName === item.itemName && dataItem.variantDetails.unit === item.variantDetails.unit
-          ? { ...dataItem, quantity: updatedQuantity }
-          : dataItem
-      );
-      return { ...prevState, allData: updatedItems };
-    });
-
-    updateCartAndLocalStorages(updatedQuantity);
-  };
-
-  const handleSingleVariantSubtractPrice = (item) => {
-    const updatedQuantity = item.quantity - 1;
-    if (updatedQuantity > 0) {
-      dispatch(updateQuantity({ itemName: item.itemName, quantity: updatedQuantity, variantDetails: item.variantDetails }));
+    const key = `${item.itemName}-${item.variantDetails.unit}`;
+    const updatedQuantity = {
+      ...quantities,
+      [key]: (quantities[key] || 0) + 1,
+    };
+    if (updatedQuantity[key] > 0) {
+      dispatch(updateQuantity({ itemName: item.itemName, quantity: updatedQuantity[key], variantDetails: item.variantDetails,mealType:item?.mealType }));
       setRepeatLast((prevState) => {
         const updatedItems = prevState.allData.map((dataItem) =>
           dataItem.itemName === item.itemName && dataItem.variantDetails.unit === item.variantDetails.unit
-            ? { ...dataItem, quantity: updatedQuantity }
+            ? { ...dataItem, quantity: updatedQuantity[key] }
+            : dataItem
+        );
+        return { ...prevState, allData: updatedItems };
+      });
+      updateCartAndLocalStorage(updatedQuantity);
+    }
+  };
+  const handleSingleVariantSubtractPrice = (item) => {
+    const key = `${item.itemName}-${item.variantDetails.unit}`;
+    const updatedQuantity = {
+      ...quantities,
+      [key]: (quantities[key] || 0) - 1,
+    };
+
+    if (updatedQuantity[key] > 0) {
+      dispatch(updateQuantity({ itemName: item.itemName, quantity: updatedQuantity[key], variantDetails: item.variantDetails ,mealType:item?.mealType}));
+      setRepeatLast((prevState) => {
+        const updatedItems = prevState.allData.map((dataItem) =>
+          dataItem.itemName === item.itemName && dataItem.variantDetails.unit === item.variantDetails.unit
+            ? { ...dataItem, quantity: updatedQuantity[key] }
             : dataItem
         );
         return { ...prevState, allData: updatedItems };
       });
 
-      updateCartAndLocalStorages(updatedQuantity);
+      updateCartAndLocalStorage(updatedQuantity);
 
     }
-    if (updatedQuantity < 1) {
-      dispatch(removeItem({ itemName: item.itemName, variantDetails: item.variantDetails }))
-      updateCartAndLocalStorages(updatedQuantity)
+    if (updatedQuantity[key] < 1) {
+      dispatch(removeItem({ itemName: item.itemName, variantDetails: item.variantDetails,mealType:item?.mealType }))
+      updateCartAndLocalStorage(updatedQuantity)
       const updatedAllData = repeatLast.allData.filter((dataItem) =>
         dataItem.itemName !== item.itemName || dataItem.variantDetails.unit !== item.variantDetails.unit
       );
@@ -336,25 +350,6 @@ const SingleProduct = () => {
         ...prevState,
         allData: updatedAllData,
       }));
-    }
-  };
-
-  const updateCartAndLocalStorages = (updatedQuantity) => {
-    const data = localStorage.getItem("cartItems");
-    if (data) {
-      const parsedData = JSON.parse(data);
-      let totalItems = 0;
-      let totalPrice = 0;
-
-      parsedData.forEach(({ itemName, quantity, itemDetails, variantDetails }) => {
-        const price = variantDetails ? variantDetails.price : itemDetails.itemPrice;
-        totalItems += quantity;
-        totalPrice += quantity * parseInt(price, 10);
-      });
-
-      setItmsQuantity(totalItems);
-      setCartTotal(totalPrice);
-      setOpenCart(totalItems > 0);
     }
   };
   return (
@@ -367,10 +362,9 @@ const SingleProduct = () => {
           const sectionData = sectionnameWiseData.find(
             (data) => data.sectionName === sectionName
           );
-
           return (
             <div key={index} className="">
-              <section className="font-semibold text-lg px-2 bg-white py-2 sticky top-8 z-10">
+              <section className="font-semibold text-lg px-2 bg-white py-2 sticky top-8 z-10" ref={(ref) => (sectionRefs.current[sectionName] = ref)} id={sectionName}>
                 {sectionName}
               </section>
               <hr className="my-2" />
@@ -395,7 +389,7 @@ const SingleProduct = () => {
                               &#x20B9;{item.itemPrice}
                             </p>
                             <p className="text-gray-600 text-sm mt-1">
-                              {item.itemDescription}
+                              {item?.itemDescription}
                             </p>
                           </div>
                           <div className="col-span-4 px-2">
@@ -450,15 +444,16 @@ const SingleProduct = () => {
                 <Card
                   key={index}
                   variant="outlined"
+                  className={`p-4 my-1 hover:cursor-pointer ${selectedSectionsName === section ? "activeSection" : ""
+                    }`}
                   onClick={() => {
-                    navigate("/singleProduct", {
-                      state: { sectionName: section },
-                    });
+                    setSelectedSectionsName(section);
                     setOpen(false);
                   }}
-                  className="p-4 my-1 hover:cursor-pointer"
                 >
-                  <div className="">{section} </div>
+                  <a href={`#${section}`} onClick={() => setOpen(false)}>
+                    <div>{section}</div>
+                  </a>
                 </Card>
               ))}
           </div>
@@ -498,12 +493,12 @@ const SingleProduct = () => {
         >
           <Box className="fixed bottom-0 py-3 bg-white shadow-lg rounded-t-lg h-fit border left-1/2 transform -translate-x-1/2 w-full">
             <div className="p-4">
-              {selectedVariants.map((variant, index) => (
+              {selectedVariants?.map((variant, index) => (
                 <div key={index} className="flex justify-between p-2 border-b" onClick={() => handleVariantSelection(index)}>
                   <div>
                     <span className="ml-2">{variant.unit}</span>
                   </div>
-                  <div>
+                  <div className="flex items-center">
                     <span className="mr-2">&#x20B9;{variant.price}</span>
                     <input
                       type="radio"
@@ -514,6 +509,30 @@ const SingleProduct = () => {
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="px-4">
+              <div className="flex justify-between w-full p-2">
+                <div className="flex flex-col justify-between w-full">
+                  <label className="flex items-center justify-between py-1">
+                    Regular
+                    <input
+                      type="radio"
+                      name="preference"
+                      className="mr-2"
+                      onChange={() => setMealType('Regular')}
+                    />
+                  </label>
+                  <label className="flex items-center justify-between w-full py-1">
+                    Jain
+                    <input
+                      type="radio"
+                      name="preference"
+                      className="mr-2"
+                      onChange={() => setMealType('Jain')}
+                    />
+                  </label>
+                </div>
+              </div>
             </div>
             <div className="p-2 flex justify-center gap-4 text-center">
               <button

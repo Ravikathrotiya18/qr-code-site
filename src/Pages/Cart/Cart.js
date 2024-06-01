@@ -19,7 +19,6 @@ import CssBaseline from '@mui/material/CssBaseline';
 import './css/Cart.css';
 import { useDispatch, useSelector } from 'react-redux';
 import { removeItem, selectCartItems, updateQuantity } from '../../app/features/Cart/CartSlice';
-
 function Cart() {
     const [activeTab, setActiveTab] = React.useState('Dine In');
     const [value, setValue] = React.useState('cart');
@@ -27,7 +26,6 @@ function Cart() {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const cartItems = useSelector(selectCartItems);
-
     const handleChange = (event, newValue) => {
         setValue(newValue);
         if (newValue === 'cart') {
@@ -40,9 +38,7 @@ function Cart() {
         }
     };
     const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
-
     const totalPrice = cartItems.reduce((total, item) => total + (item.quantity * item.variantDetails.price), 0);
-
     const handleIncrement = (item) => {
         if (item.quantity < 11) {
             dispatch(updateQuantity({ itemName: item.itemName, quantity: item.quantity + 1, variantDetails: item.variantDetails }));
@@ -51,7 +47,6 @@ function Cart() {
             alert('Max Limit Reached')
         }
     };
-
     const handleDecrement = (item) => {
         if (item.quantity > 1) {
             console.log(item)
@@ -60,7 +55,6 @@ function Cart() {
             dispatch(removeItem({ itemName: item.itemName, variantDetails: item.variantDetails }));
         }
     };
-
     document.addEventListener('DOMContentLoaded', function () {
         const prevBtn = document.querySelector('.prev-btn');
         const nextBtn = document.querySelector('.next-btn');
@@ -83,7 +77,6 @@ function Cart() {
     const handleTabClick = (tab) => {
         setActiveTab(tab);
     };
-
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }} className='bg-gray-200 w-full'>
             <CssBaseline />
