@@ -55,10 +55,11 @@ const cartSlice = createSlice({
         localStorage.setItem('cartItems', JSON.stringify(itemsWithNonZeroQuantity));
       }
     },
+    
     editItem(state, action) {
       const { prevItem, newItem } = action.payload;
       const { itemName: prevItemName, variantDetails: prevVariantDetails, mealType: prevMealType } = prevItem;
-      const { itemName: newItemName, itemDetails: newItemDetails, variantDetails: newVariantDetails, mealType: newMealType } = newItem;
+      const { itemName: newItemName, variantDetails: newVariantDetails, mealType: newMealType } = newItem;
 
       const itemIndex = state.items.findIndex(item =>
         item.itemName === prevItemName &&
@@ -67,14 +68,19 @@ const cartSlice = createSlice({
       );
 
       if (itemIndex !== -1) {
-        state.items[itemIndex] = { itemName: newItemName, itemDetails: newItemDetails, variantDetails: newVariantDetails, mealType: newMealType };
+        state.items[itemIndex] = {
+          ...state.items[itemIndex],
+          itemName: newItemName,
+          variantDetails: newVariantDetails,
+          mealType: newMealType
+        };
         localStorage.setItem('cartItems', JSON.stringify(state.items));
       }
     },
   },
 });
 
-export const { addItem, updateQuantity, removeItem } = cartSlice.actions;
+export const { addItem, updateQuantity, removeItem, editItem } = cartSlice.actions;
 
 const storedItems = localStorage.getItem('cartItems');
 if (storedItems) {
@@ -84,3 +90,4 @@ if (storedItems) {
 export const selectCartItems = state => state.cart.items;
 
 export default cartSlice.reducer;
+  

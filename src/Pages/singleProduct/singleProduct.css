@@ -1,13 +1,64 @@
-.subCategorySuggestionCard{
+.subCategorySuggestionCard {
     width: 9rem !important;
 }
-.marginLeft{
+
+.marginLeft {
     margin-left: 55%;
     margin-top: 5px;
 }
-.text-align-webkit{
+
+.text-align-webkit {
     text-align: -webkit-center;
 }
-.activeSection{
+
+.activeSection {
     border: 2px solid black !important;
+}
+
+.custom-radio-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.custom-radio-label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.custom-radio-label input[type="radio"] {
+    display: none;
+}
+
+.custom-radio-mark {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid #ccc;
+    display: inline-block;
+    position: relative;
+    margin-left: 10px;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.custom-radio-label input[type="radio"]:checked+.custom-radio-mark {
+    background-color: rgb(226, 55, 68);
+    border-color: rgb(226, 55, 68);
+}
+
+.custom-radio-label input[type="radio"]:checked+.custom-radio-mark::after {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.custom-radio-label:hover .custom-radio-mark {
+    border-color: #888;
 }

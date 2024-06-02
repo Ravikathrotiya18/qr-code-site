@@ -5,7 +5,6 @@ import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
-import FavoriteIcon from '@mui/icons-material/Favorite';
 import ArchiveIcon from '@mui/icons-material/Archive';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { FaPlus, FaMinus } from "react-icons/fa6";
@@ -28,6 +27,7 @@ function Cart() {
     const cartItems = useSelector(selectCartItems);
     const handleChange = (event, newValue) => {
         setValue(newValue);
+
         if (newValue === 'cart') {
             navigate('/cart');
             setColor(true)
@@ -41,18 +41,30 @@ function Cart() {
     const totalPrice = cartItems.reduce((total, item) => total + (item.quantity * item.variantDetails.price), 0);
     const handleIncrement = (item) => {
         if (item.quantity < 11) {
-            dispatch(updateQuantity({ itemName: item.itemName, quantity: item.quantity + 1, variantDetails: item.variantDetails }));
-        }
-        else {
-            alert('Max Limit Reached')
+            dispatch(updateQuantity({
+                itemName: item.itemDetails.itemName,
+                quantity: item.quantity + 1,
+                variantDetails: item.variantDetails,
+                mealType: item.mealType
+            }));
+        } else {
+            alert('Max Limit Reached');
         }
     };
     const handleDecrement = (item) => {
         if (item.quantity > 1) {
-            console.log(item)
-            dispatch(updateQuantity({ itemName: item.itemName, quantity: item.quantity - 1, variantDetails: item.variantDetails }));
+            dispatch(updateQuantity({
+                itemName: item.itemDetails.itemName,
+                quantity: item.quantity - 1,
+                variantDetails: item.variantDetails,
+                mealType: item.mealType
+            }));
         } else {
-            dispatch(removeItem({ itemName: item.itemName, variantDetails: item.variantDetails }));
+            dispatch(removeItem({
+                itemName: item.itemDetails.itemName,
+                variantDetails: item.variantDetails,
+                mealType: item.mealType
+            }));
         }
     };
     document.addEventListener('DOMContentLoaded', function () {
@@ -83,7 +95,9 @@ function Cart() {
             <AppBar component="nav" className='w-full'>
                 <div className="flex  justify-around w-full bg-white text-black items-center">
                     <div className="flex w-full  items-center">
-                        <div className="back_icon cursor-pointer"><ArrowBackOutlinedIcon onClick={() => { navigate(-1) }} /></div>
+                        <div className="back_icon ml-2 cursor-pointer">
+                            <ArrowBackOutlinedIcon onClick={() => { navigate(-1) }} />
+                        </div>
                         <div className="ml-2 text-lg font-medium">Cart</div>
                     </div>
                     <div className=" w-full mr-2 items-center gap-1  bg-gray-200  rounded-md">
@@ -221,7 +235,6 @@ function Cart() {
                         </div>
                     </div>
                 </div>
-
             )}
             <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0 }} elevation={3}>
                 <BottomNavigation
@@ -239,5 +252,4 @@ function Cart() {
         </Box>
     );
 }
-
 export default Cart;

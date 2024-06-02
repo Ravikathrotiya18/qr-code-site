@@ -6,7 +6,7 @@ import ArrowBackOutlinedIcon from "@mui/icons-material/ArrowBackOutlined";
 import { Box, Card, Modal } from "@mui/material";
 import { FaMinus, FaPlus } from "react-icons/fa";
 import { useDispatch, useSelector } from "react-redux";
-import { addItem, removeItem, updateQuantity } from "../../app/features/Cart/CartSlice";
+import { addItem, removeItem, updateQuantity, editItem } from "../../app/features/Cart/CartSlice";
 import sectionnameWiseData from "../Test";
 import "./singleProduct.css";
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -25,8 +25,10 @@ const SingleProduct = () => {
   const [selectedVariants, setSelectedVariants] = useState([]);
   const [meaalType, setMealType] = useState('Regular')
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(null);
-  const [editedItem, setEditedItem] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [prevData, setPrevData] = useState(null);
+  const [newData, setNewData] = useState(null)
+  const [isEdit, setIsEdit] = useState(false)
   const [selectedSectionsName, setSelectedSectionsName] = useState(selectedSectionName)
   const [repeatLast, setRepeatLast] = useState({
     status: false,
@@ -248,7 +250,6 @@ const SingleProduct = () => {
         setQuantities(updatedQuantities);
         setItmsQuantity((prev) => prev + 1);
         setCartTotal((prev) => prev + parseInt(selectedVariant.price, 10));
-        managedCart(itemName, updatedQuantities[key], selectedItem, selectedVariant, meaalType);
         setVariantsListPopUp(false);
         setOpenCart(true);
         updateCartAndLocalStorage(updatedQuantities)
@@ -261,6 +262,25 @@ const SingleProduct = () => {
           allData: filteredItems,
           subtract: false
         });
+        if (!isEdit) {
+          managedCart(itemName, updatedQuantities[key], selectedItem, selectedVariant, meaalType);
+        } else {
+          const variant = selectedVariant
+          setNewData({
+            itemName: itemName,
+            variantDetails: variant,
+            mealType: meaalType
+          })
+          const newItem = {
+            itemName: itemName,
+            variantDetails: variant,
+            mealType: meaalType
+          }
+          dispatch(editItem({ prevItem: prevData, newItem: newItem }))
+          setIsEdit(false)
+        }
+        setSelectedVariantIndex(null)
+        setMealType('Regular')
       }
     } else {
       const itemName = selectedItem?.itemName;
@@ -276,7 +296,7 @@ const SingleProduct = () => {
       setVariantsListPopUp(false)
       setItmsQuantity((prev) => prev + 1);
     }
-  }; 
+  };
   const handleRepeatLast = () => {
     const { itemDetails } = repeatLast;
     const itemName = itemDetails?.itemName;
@@ -372,7 +392,16 @@ const SingleProduct = () => {
     }
   };
   const handleEditItem = (item) => {
+    setIsEdit(true)
     const { itemName } = item.itemDetails;
+    const meal = item.mealType
+    setPrevData({
+      itemName: item.itemName,
+      variantDetails: item.variantDetails,
+      mealType: item.mealType
+    })
+    setMealType(meal)
+    const unit = item.variantDetails.unit;
     for (let i = 0; i < sectionnameWiseData.length; i++) {
       const section = sectionnameWiseData[i];
       const itemsData = section.itemsData;
@@ -380,11 +409,14 @@ const SingleProduct = () => {
       if (selectedItemData) {
         const variantsList = selectedItemData.variantsList || [];
         setSelectedVariants(variantsList)
+        const unitIndex = variantsList.findIndex(val => val.unit === unit)
+        setSelectedVariantIndex(unitIndex)
         break;
       }
     }
     setVariantsListPopUp(true)
   };
+  
   return (
     <div>
       <div className="back_icon cursor-pointer fixed top-0 bg-white w-full p-2 z-20">
@@ -525,42 +557,52 @@ const SingleProduct = () => {
           <Box className="fixed bottom-0 py-3 bg-white shadow-lg rounded-t-lg h-fit border left-1/2 transform -translate-x-1/2 w-full">
             <div className="p-4">
               {selectedVariants?.map((variant, index) => (
-                <div key={index} className="flex justify-between p-2 border-b" onClick={() => handleVariantSelection(index)}>
+                <div
+                  key={index}
+                  className="custom-radio-container p-2 border-b"
+                  onClick={() => handleVariantSelection(index)}
+                >
                   <div>
                     <span className="ml-2">{variant.unit}</span>
                   </div>
-                  <div className="flex items-center">
-                    <span className="mr-2">&#x20B9;{variant.price}</span>
+                  <label className="custom-radio-label">
+                    <span className='pl-2'>&#x20B9;{variant.price}</span>
                     <input
                       type="radio"
                       name="variant"
                       checked={selectedVariantIndex === index}
                       onChange={() => handleVariantSelection(index)}
+                      onClick={() => handleVariantSelection(index)}
                     />
-                  </div>
+                    <span className="custom-radio-mark"></span>
+                  </label>
                 </div>
               ))}
             </div>
             <div className="px-4">
               <div className="flex justify-between w-full p-2">
                 <div className="flex flex-col justify-between w-full">
-                  <label className="flex items-center justify-between py-1">
+                  <label className="custom-radio-label justify-between py-1">
                     Regular
                     <input
                       type="radio"
                       name="preference"
                       className="mr-2"
+                      checked={meaalType === 'Regular'}
                       onChange={() => setMealType('Regular')}
                     />
+                    <span className="custom-radio-mark"></span>
                   </label>
-                  <label className="flex items-center justify-between w-full py-1">
+                  <label className="custom-radio-label justify-between w-full py-1">
                     Jain
                     <input
                       type="radio"
                       name="preference"
                       className="mr-2"
+                      checked={meaalType === 'Jain'}
                       onChange={() => setMealType('Jain')}
                     />
+                    <span className="custom-radio-mark"></span>
                   </label>
                 </div>
               </div>
@@ -570,7 +612,7 @@ const SingleProduct = () => {
                 className="bg-red-600 w-full text-white py-2 px-4 rounded mr-2"
                 onClick={handleAddVariantToCart}
               >
-                Add
+                {isEdit ? 'Edit' : 'Add'}
               </button>
               <button
                 className="bg-gray-600 w-full text-white py-2 px-4 rounded"
