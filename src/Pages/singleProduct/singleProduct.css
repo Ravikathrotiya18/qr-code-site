@@ -62,3 +62,39 @@
 .custom-radio-label:hover .custom-radio-mark {
     border-color: #888;
 }
+
+.fixedHeight {
+    max-height: 350px !important;
+    overflow: auto;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(100%);
+    }
+}
+
+.slide-up-animation {
+    animation: slideUp 0.5s ease-out forwards;
+}
+
+.slide-down-animation {
+    animation: slideDown 0.3s ease-out backwards;
+}
+.leftSide{
+    left: 44%;
+}

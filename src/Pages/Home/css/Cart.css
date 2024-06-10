@@ -73,3 +73,20 @@ body {
 .css-1bjk3jo-MuiButtonBase-root-MuiBottomNavigationAction-root.Mui-selected{
     color: rgb(185 28 28) !important;
 }
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.logoContainer {
+    width: 200px;
+    text-align: center;
+}
+
+.logo {
+    width: 100%;
+    height: auto; 
+    display: block;
+    margin: 0 auto; 
+}
